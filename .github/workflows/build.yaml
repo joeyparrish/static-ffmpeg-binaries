@@ -122,6 +122,7 @@ jobs:
             pkg-config \
             yasm \
             libffmpeg-nvenc-dev \
+            libva-dev \
             libvdpau-dev
 
           # Use sudo in install commands on Linux.
@@ -388,7 +389,7 @@ jobs:
             export LDFLAGS="-static"
 
             # Enable platform-specific hardware acceleration.
-            PLATFORM_CONFIGURE_FLAGS="--enable-nvenc --enable-vdpau"
+            PLATFORM_CONFIGURE_FLAGS="--enable-nvenc --enable-vdpau --enable-vaapi"
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
             export CFLAGS="-static"
             # You can't do a _truly_ static build on macOS except the kernel.
