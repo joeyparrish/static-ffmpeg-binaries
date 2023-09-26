@@ -1,6 +1,6 @@
 {
   "comment1": "runners hosted by GitHub, always enabled",
-  "hosted": [
+  "unhosted": [
     {
       "os": "ubuntu-latest",
       "os_name": "linux",
@@ -12,7 +12,9 @@
       "os_name": "osx",
       "target_arch": "x64",
       "exe_ext": ""
-    },
+    }
+  ],
+  "hosted": [
     {
       "os": "windows-latest",
       "os_name": "win",
