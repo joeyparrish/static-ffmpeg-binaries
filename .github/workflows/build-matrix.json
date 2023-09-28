@@ -24,8 +24,8 @@
   "comment2": "runners hosted by the owner, enabled by the ENABLE_SELF_HOSTED variable being set on the repo",
   "selfHosted": [
     {
-      "os": "self-hosted-linux-arm64",
-      "os_name": "linux",
+      "os": "self-hosted-macos-arm64",
+      "os_name": "osx",
       "target_arch": "arm64",
       "exe_ext": ""
     }
