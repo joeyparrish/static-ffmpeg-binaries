@@ -27,7 +27,7 @@ on:
 # old one.  If a PR is updated and a new test run is started, the old test run
 # will be cancelled automatically to conserve resources.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 # NOTE: Set the repository variable ENABLE_DEBUG to enable debugging via tmate
@@ -37,5 +37,12 @@ concurrency:
 # will have to opt in after setting up their own self-hosted runners.
 
 jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo github.head_ref ${{ github.head_ref }}
+      - run: echo github.event.number ${{ github.event.number }}
+      - run: echo github.run_id ${{ github.run_id }}
+
   build:
     uses: ./.github/workflows/build.yaml
