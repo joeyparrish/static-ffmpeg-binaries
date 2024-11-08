@@ -43,6 +43,11 @@ elif [[ "$RUNNER_OS" == "Windows" ]]; then
   echo "$ffmpeg_deps" | grep -qvi /c/Windows/ && exit 1
   echo "$ffprobe_deps" | grep -qvi /c/Windows/ && exit 1
 elif [[ "$RUNNER_OS" == "macOS" ]]; then
+  curl https://storage.googleapis.com/shaka-streamer-assets/test-assets/BigBuckBunny.1080p.mp4 > in.mp4
+  ./ffmpeg -y -i in.mp4 -loglevel trace -an -c:v libvpx-vp9 -f mp4 out.mp4
+  echo OK
+  exit 1
+
   # These will still be dynamic executables.
   # Capture the full list of dynamic library dependencies.
   # With set -x, this also gets logged.
