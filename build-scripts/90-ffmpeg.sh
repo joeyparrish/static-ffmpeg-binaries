@@ -84,6 +84,7 @@ if ! ./configure \
     --enable-gpl \
     --enable-version3 \
     --enable-static \
+    --enable-debug \
     $PLATFORM_CONFIGURE_FLAGS; then
   cat ffbuild/config.log
   exit 1
