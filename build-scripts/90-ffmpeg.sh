@@ -80,6 +80,7 @@ if ! ./configure \
     --enable-libsvtav1 \
     --enable-libx264 \
     --enable-libx265 \
+    --enable-libpng \
     --enable-libmp3lame \
     --enable-libopus \
     --enable-mbedtls \
