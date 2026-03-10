@@ -1,8 +1,13 @@
-ffmpeg: n7.1
-libvpx: v1.13.0
-svt-av1: v1.7.0
-x264: a8b68ebf
-x265: 3.5
+ffmpeg: n8.0.1
+libvpx: v1.16.0
+svt-av1: v3.1.2
+x264: b35605ac
+x265: 4.1
 lame: 3.100
-opus: v1.4
+opus: v1.5.2
 mbedtls: v3.4.1
+
+# NOTES:
+#  - svt-av1 v4 was not working with ffmpeg n8
+#  - Not trying mbedtls v4 with ffmpeg yet
+#  - mbedtls v3.6 and v3.5 fail to link with ffmpeg on Windows (bcrypt missing)

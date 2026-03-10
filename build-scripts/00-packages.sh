@@ -70,6 +70,16 @@ elif [[ "$RUNNER_OS" == "macOS" ]]; then
     nasm \
     yasm
 
+  # Downgrade to CMake v3 specifically.  x265 blows up on CMake v4.
+  brew unlink cmake || true
+  curl -L -o cmake-3.tgz \
+      https://github.com/Kitware/CMake/releases/download/v3.31.11/cmake-3.31.11-macos-universal.tar.gz
+  tar xf cmake-3.tgz
+  mv cmake-3.*/CMake.app /Applications/
+  export PATH="/Applications/CMake.app/Contents/bin:$PATH"  # For now
+  echo "/Applications/CMake.app/Contents/bin" >> "$GITHUB_PATH"  # For later
+  cmake --version  # to verify
+
   # Unlink pre-installed homebrew packages that conflict with our static
   # library builds below.  They are still installed, but will no longer be
   # symlinked into default library paths, and the ffmpeg build will not pick up

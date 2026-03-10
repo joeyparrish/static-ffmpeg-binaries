@@ -24,9 +24,11 @@ cd x265_git/build
 # NOTE: without CMAKE_INSTALL_PREFIX on Windows, files are installed
 # to c:\Program Files.
 cmake ../source \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
   -DCMAKE_INSTALL_PREFIX=/usr/local \
   -DENABLE_SHARED=OFF \
-  -DENABLE_CLI=OFF
+  -DENABLE_CLI=OFF \
+  -DENABLE_SVE2=OFF
 
 make
 $SUDO make install
