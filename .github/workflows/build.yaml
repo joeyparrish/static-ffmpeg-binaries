@@ -70,7 +70,7 @@ jobs:
     outputs:
       MATRIX: ${{ steps.configure.outputs.MATRIX }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: repo-src
           ref: ${{ inputs.ref || github.ref }}
@@ -134,20 +134,60 @@ jobs:
       # GitHub Actions.  This is because GitHub doesn't officially support
       # Alpine and because they hard-code the path to NodeJS in Node-based
       # actions.
-      # See https://github.com/actions/runner/issues/801#issuecomment-2394425757
+      # See https://github.com/actions/runner/issues/801#issuecomment-2976165281
       - name: Patch native Alpine NodeJS into Runner environment
         if: startsWith(matrix.container, 'alpine')
         run: |
+          echo "OS Release:"
+          cat /etc/os-release
+
+          # GitHub Actions Runner will exclude Alpine arm64 runners before
+          # executing any JavaScript action.  So we have to pretend we aren't
+          # that. See:
+          #  - https://github.com/actions/runner/blob/40dd583/src/Runner.Worker/Handlers/StepHost.cs#L283
+          #  - https://github.com/actions/runner/issues/801
+          #  - https://github.com/actions/runner/issues/801#issuecomment-1374967227
+          #  - https://github.com/actions/runner/issues/801#issuecomment-2394425757
+          if [[ "${{ matrix.target_arch }}" == "arm64" ]]; then
+            sed -i "s:^ID=alpine:ID=NotpineForGHA:" /etc/os-release
+          fi
+
+          # Install native Alpine NodeJS
           apk add nodejs
-          sed -i "s:^ID=alpine:ID=NotpineForGHA:" /etc/os-release
-          # The first path here is for GitHub-hosted workflows, while the
-          # second path is correct for our self-hosted workflows using the
-          # myoung34/github-runner container.  The commands that follow this
-          # are correct so long as one of these paths exists.
-          cd /host/home/runner/runners/*/externals/ || cd /host/actions-runner/externals
-          rm -rf node20/*
-          mkdir node20/bin
-          ln -s /usr/bin/node node20/bin/node
+
+          START_TS=$(date +%s)
+
+          # Paths as of 2026-03-10:
+          #   GitHub-hosted on x64: /host/home/runner/actions-runner/cached/externals
+          #   GitHub-hosted on arm64: /host/home/runner/actions-runner/cached/2.332.0/externals
+          #   Self-hosted with myoung34/github-runner: /host/actions-runner/externals
+          # Instead of hardcoding paths, which seem to change on occasion,
+          # locate them dynamically.
+
+          # Map the filesystem with plocate.
+          apk add plocate
+          updatedb
+
+          # There may be multiple versions installed.  Assume we keep the
+          # "externals" convention noted above.
+          ALL_NODE_BINARIES=$(plocate externals | grep '/bin/node$')
+          echo "Node binaries:"
+          echo "$ALL_NODE_BINARIES"
+
+          ALL_NODE_FOLDERS=$(echo "$ALL_NODE_BINARIES" | sed -e 's@/bin/node@@')
+          echo "Node folders:"
+          echo "$ALL_NODE_FOLDERS"
+
+          for FOLDER in $ALL_NODE_FOLDERS; do
+            echo "Patching NodeJS in $FOLDER"
+            rm -rf "$FOLDER"/*
+            mkdir "$FOLDER"/bin
+            ln -s /usr/bin/node "$FOLDER"/bin/node
+          done
+
+          END_TS=$(date +%s)
+          echo "Node patch took $((END_TS - START_TS)) seconds."
+
         shell: sh  # No bash in Alpine by default
 
       - name: Install Alpine Linux deps
@@ -161,7 +201,7 @@ jobs:
         # container image for Ubuntu.
         run: apt -y update && apt -y upgrade && apt -y install sudo
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: repo-src
           ref: ${{ inputs.ref || github.ref }}
@@ -214,7 +254,7 @@ jobs:
       # This makes it possible to debug failures in the next step by
       # downloading binaries that fail the check for static linkage.
       - name: Upload assets as artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: binaries${{ env.SUFFIX }}
           path: assets/*
@@ -222,8 +262,29 @@ jobs:
       - name: Check that executables are static
         run: ./repo-src/build-scripts/99-check-static.sh
 
+      # Because we had to break Alpine detection to work around runner
+      # restrictions, we also have to manually install Alpine deps for tmate.
+      # The action below can't tell what distro we are on, and tries to use
+      # apt-get if we let it install deps.
+      - name: Alpine Debug Prep
+        if: failure() && inputs.debug && startsWith(matrix.container, 'alpine') && matrix.target_arch == 'arm64'
+        run: |
+          # These are tmate's direct dependencies according to the action below.
+          apk add openssh-client xz bash
+
+          # Now install tmate itself.
+          TMATE_LINUX_VERSION=2.4.0
+          TMATE_ARCH=arm64v8
+          curl -Lo tmate.tar.xz \
+              https://github.com/tmate-io/tmate/releases/download/${TMATE_LINUX_VERSION}/tmate-${TMATE_LINUX_VERSION}-static-linux-${TMATE_ARCH}.tar.xz
+          tar xf tmate.tar.xz
+          install -m 755 tmate-${TMATE_LINUX_VERSION}-static-linux-${TMATE_ARCH}/tmate /usr/bin/tmate
+          rm -rf tmate-${TMATE_LINUX_VERSION}-static-linux-${TMATE_ARCH}/
+
       - name: Debug
-        uses: mxschmitt/action-tmate@v3.6
+        uses: mxschmitt/action-tmate@v3.23
         with:
           limit-access-to-actor: true
+          # See comment above on "Alpine Debug Prep".
+          install-dependencies: ${{ !(startsWith(matrix.container, 'alpine') && matrix.target_arch == 'arm64') }}
         if: failure() && inputs.debug
